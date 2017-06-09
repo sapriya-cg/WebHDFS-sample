@@ -12,8 +12,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
-import webhdfs.client.HdfsFile;
-
 /**
  * To process ListFiles Http response.
  *

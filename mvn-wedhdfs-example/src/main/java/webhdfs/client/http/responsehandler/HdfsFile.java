@@ -1,4 +1,4 @@
-package webhdfs.client;
+package webhdfs.client.http.responsehandler;
 
 /**
  * 

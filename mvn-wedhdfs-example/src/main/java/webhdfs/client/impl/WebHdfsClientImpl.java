@@ -7,16 +7,17 @@ import java.util.List;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
 
 import webhdfs.client.WebHdfsClient;
 import webhdfs.client.http.requestexecution.HttpRequestExecutionEngine;
-import webhdfs.client.http.responsehandler.CreateFileResponseHandler;
+import webhdfs.client.http.responsehandler.CreateAndAppendFileResponseHandler;
 import webhdfs.client.http.responsehandler.DeleteFilesResponseHandler;
 import webhdfs.client.http.responsehandler.HdfsFile;
 import webhdfs.client.http.responsehandler.ListFilesResponseHandler;
-import webhdfs.client.http.responsehandler.MakeDirectoryResponseHandler;
+import webhdfs.client.http.responsehandler.MakeDirectoryAndRenameResponseHandler;
 
 /**
  * 
@@ -31,34 +32,49 @@ public class WebHdfsClientImpl implements WebHdfsClient {
 	private static final String version = "v1";
 	private static final String opString = "?op=";
 	private static final String forwardSlash = "/";
-	
+	private static final String andOp = "&";
+
 	private static final String listFilesOp = "LISTSTATUS";
 	private static final String createFileOp = "CREATE";
+	private static final String appendFileOp = "APPEND";
 	private static final String deleteFileOp = "DELETE";
 	private static final String makeDirOp = "MKDIRS";
-	
+	private static final String renameFileOp = "RENAME";
+
 	public static void main(String[] args) throws Exception {
-		WebHdfsClientImpl client = new WebHdfsClientImpl();
+		WebHdfsClient client = new WebHdfsClientImpl();
+
 		String hostURL = hostServer + ":" + port + "/" + protocol + "/"
 				+ version;
 		String hdfsDirPath = "/myDir"; // replace with hdfs path
 
 		String hdfsFileName = "dataFile.txt";
 
-		String localFilepath = "/dataFile.txt"; // replace with local file path
+		String localFilepath = "dataFile.txt"; // replace with local file path
 
 		// make directory
 		client.makeDirectory(hostURL, hdfsDirPath);
 
 		// create and upload hdfs file
 		client.createFile(hostURL, hdfsDirPath + forwardSlash, hdfsFileName,
+ 				localFilepath);
+
+		// append additional data to hdfs file
+		client.appendFile(hostURL, hdfsDirPath + forwardSlash, hdfsFileName,
 				localFilepath);
 
 		// list file
 		client.listFiles(hostURL, hdfsDirPath);
 
+		// rename hdfs file / directory
+		String newHdfsFileName = "NewDataFile.txt"; // replace with
+		client.renameFile(hostURL, hdfsDirPath + forwardSlash + hdfsFileName , hdfsDirPath + forwardSlash + newHdfsFileName);
+
+		// list file
+		client.listFiles(hostURL, hdfsDirPath);
+
 		// delete file
-		String hdfsFilepath = hdfsDirPath + forwardSlash + hdfsFileName;
+		String hdfsFilepath = hdfsDirPath + forwardSlash + newHdfsFileName;
 		client.deleteFile(hostURL, hdfsFilepath);
 
 		// list file
@@ -95,7 +111,7 @@ public class WebHdfsClientImpl implements WebHdfsClient {
 		HttpResponse response = requestExecutor
 				.executeRequest(makeDirectoryRequest);
 
-		MakeDirectoryResponseHandler makeDirResponseHandler = new MakeDirectoryResponseHandler();
+		MakeDirectoryAndRenameResponseHandler makeDirResponseHandler = new MakeDirectoryAndRenameResponseHandler();
 		System.out.println("Created: "
 				+ makeDirResponseHandler.handleResponse(response));
 	}
@@ -159,7 +175,7 @@ public class WebHdfsClientImpl implements WebHdfsClient {
 		HttpResponse response = requestExecutor
 				.executeRequest(createFileRequest);
 
-		CreateFileResponseHandler createFileResponseHandler = new CreateFileResponseHandler();
+		CreateAndAppendFileResponseHandler createFileResponseHandler = new CreateAndAppendFileResponseHandler();
 		String redirectDataNodeURL = createFileResponseHandler
 				.handleResponse(response);
 
@@ -177,6 +193,58 @@ public class WebHdfsClientImpl implements WebHdfsClient {
 		// datanode path where the file is written to.
 		System.out.println(createFileResponseHandler
 				.handleResponse(uploadFileResponse));
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see webhdfs.client.WebHdfsClient#appendFile(java.lang.String,
+	 * java.lang.String, java.lang.String, java.lang.String)
+	 */
+	public void appendFile(String hostURL, String dirPath, String fileName,
+			String localFilePath) throws Exception {
+		// step 1 : get redirect path for Hdfs file.
+		HttpPost appendFileRequest = new HttpPost(hostURL + dirPath + fileName
+				+ opString + appendFileOp);
+
+		HttpRequestExecutionEngine requestExecutor = new HttpRequestExecutionEngine();
+		HttpResponse response = requestExecutor
+				.executeRequest(appendFileRequest);
+
+		CreateAndAppendFileResponseHandler createFileResponseHandler = new CreateAndAppendFileResponseHandler();
+		String redirectDataNodeURL = createFileResponseHandler
+				.handleResponse(response);
+
+		// step2: append local file content to the redirect data node path
+		HttpPost uploadFileRequest = new HttpPost(redirectDataNodeURL);
+		uploadFileRequest.addHeader("Content-Type", "application/octet-stream");
+
+		byte[] bFile = Files.readAllBytes(new File(localFilePath).toPath());
+		ByteArrayEntity requestEntity = new ByteArrayEntity(bFile);
+		uploadFileRequest.setEntity(requestEntity);
+
+		requestExecutor.executeRequest(uploadFileRequest);
+
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see webhdfs.client.WebHdfsClient#renameFile(java.lang.String,
+	 * java.lang.String, java.lang.String)
+	 */
+	public void renameFile(String hostURL, String hdfsFilePath,
+			String hdfsNewFilePath) throws 
+			Exception {
+		HttpPut renameFileRequest = new HttpPut(hostURL + hdfsFilePath
+				+ opString + renameFileOp + andOp + "destination=" + hdfsNewFilePath);
+
+		HttpRequestExecutionEngine requestExecutor = new HttpRequestExecutionEngine();
+		HttpResponse response = requestExecutor.executeRequest(renameFileRequest);
+		
+		MakeDirectoryAndRenameResponseHandler makeDirResponseHandler = new MakeDirectoryAndRenameResponseHandler();
+		System.out.println("Moved / Renamed: "
+				+ makeDirResponseHandler.handleResponse(response));
 	}
 
 }

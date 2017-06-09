@@ -11,10 +11,10 @@ import org.json.simple.JSONValue;
 
 /**
  * 
- * To process response of delete files request.
+ * To process response of make dir, rename / move files request.
  *
  */
-public class MakeDirectoryResponseHandler implements ResponseHandler<Boolean> {
+public class MakeDirectoryAndRenameResponseHandler implements ResponseHandler<Boolean> {
 	
 	/**
 	 * Retrieves True / False status from HttpResponse. 

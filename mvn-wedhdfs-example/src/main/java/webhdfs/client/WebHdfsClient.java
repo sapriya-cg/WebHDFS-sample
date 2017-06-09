@@ -47,6 +47,23 @@ public interface WebHdfsClient {
 			String localFilePath) throws Exception;
 
 	/**
+	 * Appends data from local file to already existing Hdfs file.
+	 * 
+	 * @param hostURL
+	 *            Cannot be null
+	 * @param dirPath
+	 *            Cannot be null
+	 * @param fileName
+	 *            Cannot be null
+	 * @param localFilePath
+	 *            Cannot be null
+	 * @throws Exception
+	 */
+
+	public void appendFile(String hostURL, String dirPath, String fileName,
+			String localFilePath) throws Exception;
+
+	/**
 	 * Deletes Hdfs file.
 	 * 
 	 * @param hostURL
@@ -68,4 +85,18 @@ public interface WebHdfsClient {
 	 * @throws Exception
 	 */
 	public void listFiles(String hostURL, String dirPath) throws Exception;
+
+	/**
+	 * To rename Hdfs file / directory. Also can be used for moving files / dir from one path to another.
+	 * 
+	 * @param hostURL
+	 *            Cannot be null
+	 * @param hdfsFilePath
+	 *            Cannot be null
+	 * @param hdfsNewFilePath
+	 *            Cannot be null
+	 * @throws Exception 
+	 */
+	public void renameFile(String hostURL, String hdfsFilePath,
+			String hdfsNewFilePath) throws Exception;
 }

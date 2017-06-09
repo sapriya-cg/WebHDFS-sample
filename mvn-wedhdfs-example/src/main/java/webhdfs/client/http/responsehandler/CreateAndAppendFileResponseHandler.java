@@ -8,10 +8,10 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 
 /**
- * To process create Hdfs file Http response.
+ * To process create Hdfs file / append data to existing file Http response.
  *
  */
-public class CreateFileResponseHandler implements
+public class CreateAndAppendFileResponseHandler implements
 		ResponseHandler<String> {
 
 	/**

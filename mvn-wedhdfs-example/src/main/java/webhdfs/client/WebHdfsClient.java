@@ -87,7 +87,8 @@ public interface WebHdfsClient {
 	public void listFiles(String hostURL, String dirPath) throws Exception;
 
 	/**
-	 * To rename Hdfs file / directory. Also can be used for moving files / dir from one path to another.
+	 * To rename Hdfs file / directory. Also can be used for moving files / dir
+	 * from one path to another.
 	 * 
 	 * @param hostURL
 	 *            Cannot be null
@@ -95,8 +96,22 @@ public interface WebHdfsClient {
 	 *            Cannot be null
 	 * @param hdfsNewFilePath
 	 *            Cannot be null
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public void renameFile(String hostURL, String hdfsFilePath,
 			String hdfsNewFilePath) throws Exception;
+
+	/**
+	 * To read a hdfs file to local file.
+	 * 
+	 * @param hostURL
+	 *            Cannot be null
+	 * @param hdfsFilePath
+	 *            Cannot be null
+	 * @param localFilePath
+	 *            Cannot be null
+	 * @throws Exception
+	 */
+	public void readFile(String hostURL, String hdfsFilePath,
+			String localFilePath) throws Exception;
 }

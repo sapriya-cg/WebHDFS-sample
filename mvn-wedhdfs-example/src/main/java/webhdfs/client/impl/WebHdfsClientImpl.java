@@ -1,6 +1,8 @@
 package webhdfs.client.impl;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.util.List;
 
@@ -18,6 +20,7 @@ import webhdfs.client.http.responsehandler.DeleteFilesResponseHandler;
 import webhdfs.client.http.responsehandler.HdfsFile;
 import webhdfs.client.http.responsehandler.ListFilesResponseHandler;
 import webhdfs.client.http.responsehandler.MakeDirectoryAndRenameResponseHandler;
+import webhdfs.client.http.responsehandler.ReadFileResponseHandler;
 
 /**
  * 
@@ -26,7 +29,9 @@ import webhdfs.client.http.responsehandler.MakeDirectoryAndRenameResponseHandler
  */
 public class WebHdfsClientImpl implements WebHdfsClient {
 
-	private static final String hostServer = "localhost"; // replace with hdfs server url
+	private static final String hostServer = "localhost"; // replace with hdfs
+															// server url
+
 	private static final String port = "50070";
 	private static final String protocol = "webhdfs";
 	private static final String version = "v1";
@@ -40,13 +45,14 @@ public class WebHdfsClientImpl implements WebHdfsClient {
 	private static final String deleteFileOp = "DELETE";
 	private static final String makeDirOp = "MKDIRS";
 	private static final String renameFileOp = "RENAME";
+	private static final String readOp = "OPEN";
 
 	public static void main(String[] args) throws Exception {
 		WebHdfsClient client = new WebHdfsClientImpl();
 
 		String hostURL = hostServer + ":" + port + "/" + protocol + "/"
 				+ version;
-		String hdfsDirPath = "/myDir"; // replace with hdfs path
+		String hdfsDirPath = "/myHDFSDir"; // replace with hdfs path
 
 		String hdfsFileName = "dataFile.txt";
 
@@ -57,18 +63,26 @@ public class WebHdfsClientImpl implements WebHdfsClient {
 
 		// create and upload hdfs file
 		client.createFile(hostURL, hdfsDirPath + forwardSlash, hdfsFileName,
- 				localFilepath);
+				localFilepath);
 
 		// append additional data to hdfs file
 		client.appendFile(hostURL, hdfsDirPath + forwardSlash, hdfsFileName,
 				localFilepath);
 
+		// read back hdfs file
+		String localReadFilepath = "dataFileRead.txt"; // replace with local
+														// file path
+		client.readFile(hostURL, hdfsDirPath + forwardSlash + hdfsFileName,
+				localReadFilepath);
+
 		// list file
 		client.listFiles(hostURL, hdfsDirPath);
 
 		// rename hdfs file / directory
-		String newHdfsFileName = "NewDataFile.txt"; // replace with
-		client.renameFile(hostURL, hdfsDirPath + forwardSlash + hdfsFileName , hdfsDirPath + forwardSlash + newHdfsFileName);
+		String newHdfsFileName = "NewDataFile.txt"; // replace with new file
+													// name
+		client.renameFile(hostURL, hdfsDirPath + forwardSlash + hdfsFileName,
+				hdfsDirPath + forwardSlash + newHdfsFileName);
 
 		// list file
 		client.listFiles(hostURL, hdfsDirPath);
@@ -234,17 +248,61 @@ public class WebHdfsClientImpl implements WebHdfsClient {
 	 * java.lang.String, java.lang.String)
 	 */
 	public void renameFile(String hostURL, String hdfsFilePath,
-			String hdfsNewFilePath) throws 
-			Exception {
+			String hdfsNewFilePath) throws Exception {
 		HttpPut renameFileRequest = new HttpPut(hostURL + hdfsFilePath
-				+ opString + renameFileOp + andOp + "destination=" + hdfsNewFilePath);
+				+ opString + renameFileOp + andOp + "destination="
+				+ hdfsNewFilePath);
 
 		HttpRequestExecutionEngine requestExecutor = new HttpRequestExecutionEngine();
-		HttpResponse response = requestExecutor.executeRequest(renameFileRequest);
-		
+		HttpResponse response = requestExecutor
+				.executeRequest(renameFileRequest);
+
 		MakeDirectoryAndRenameResponseHandler makeDirResponseHandler = new MakeDirectoryAndRenameResponseHandler();
 		System.out.println("Moved / Renamed: "
 				+ makeDirResponseHandler.handleResponse(response));
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see webhdfs.client.WebHdfsClient#readFile(java.lang.String,
+	 * java.lang.String, java.lang.String)
+	 */
+	public void readFile(String hostURL, String hdfsFilePath,
+			String localFilePath) throws Exception {
+		HttpGet readFileRequest = new HttpGet(hostURL + hdfsFilePath + opString
+				+ readOp);
+
+		HttpRequestExecutionEngine requestExecutor = new HttpRequestExecutionEngine();
+		HttpResponse response = requestExecutor.executeRequest(readFileRequest);
+
+		ReadFileResponseHandler readFileResponseHandler = new ReadFileResponseHandler();
+		ByteArrayInputStream byteArrayStream = readFileResponseHandler
+				.handleResponse(response);
+
+		writeToFile(byteArrayStream, localFilePath);
+
+	}
+
+	private void writeToFile(ByteArrayInputStream byteArrayStream,
+			String localFilePath) throws Exception {
+		FileOutputStream output = new FileOutputStream(localFilePath);
+
+		try {
+			int DEFAULT_BUFFER_SIZE = 1024;
+			byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+			int n = 0;
+
+			n = byteArrayStream.read(buffer, 0, DEFAULT_BUFFER_SIZE);
+
+			while (n >= 0) {
+				output.write(buffer, 0, n);
+				n = byteArrayStream.read(buffer, 0, DEFAULT_BUFFER_SIZE);
+			}
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			output.close();
+		}
+	}
 }
